@@ -1,0 +1,15 @@
+{
+  "layer_name": "Balaghat Reserve Estimate",
+  "bounds": [
+    [
+      21.795,
+      80.165
+    ],
+    [
+      21.83,
+      80.195
+    ]
+  ],
+  "min_grade": 44.47,
+  "max_grade": 51.0
+}

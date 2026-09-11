@@ -1,0 +1,15 @@
+{
+  "layer_name": "Dongri Reserve Estimate",
+  "bounds": [
+    [
+      21.540000000000003,
+      79.67
+    ],
+    [
+      21.57,
+      79.69999999999999
+    ]
+  ],
+  "min_grade": 36.08,
+  "max_grade": 45.55
+}

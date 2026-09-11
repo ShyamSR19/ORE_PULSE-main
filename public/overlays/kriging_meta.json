@@ -1,0 +1,15 @@
+{
+  "layer_name": "Manganese Reserve Estimate (Kriging)",
+  "bounds": [
+    [
+      21.45,
+      79.1
+    ],
+    [
+      21.55,
+      79.2
+    ]
+  ],
+  "min_grade": 32.214531518541555,
+  "max_grade": 49.60436433022738
+}

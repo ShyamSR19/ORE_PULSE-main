@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OrePulse - AI Manganese Exploration & Mine Management</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <!-- Leaflet Heatmap plugin -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-heatmap@1.0.0/leaflet-heatmap.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="dark-theme">
+    <div class="app-container">
+        <!-- Top Navbar -->
+        <header class="top-navbar">
+            <div class="brand">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-gem"></i>
+                </div>
+                <div class="brand-text">
+                    <h1>OrePulse <span class="badge-v2">AI-GIS v2.4</span></h1>
+                    <p class="subtitle">Sentinel-2 Exploration & Autonomous Operational Intelligence</p>
+                </div>
+            </div>
+            
+            <div class="nav-controls">
+                <div class="region-selector">
+                    <label><i class="fa-solid fa-location-dot"></i> Region Preset:</label>
+                    <select id="regionPresetSelect">
+                        <option value="balaghat">Balaghat Mn Belt (MOIL Bharveli Mine), MP</option>
+                        <option value="dongri">Dongri Buzurg Manganese Mine, MH</option>
+                        <option value="ukwa">Ukwa Manganese Prospecting Sector, MP</option>
+                        <option value="custom">Custom GeoJSON / Bounding Box</option>
+                    </select>
+                </div>
+                
+                <div class="live-status">
+                    <span class="pulse-indicator"></span>
+                    <span class="status-text">Sentinel-2 Hub Live Connection: <strong id="stacStatus">STAC Connected (10m Resolution)</strong></span>
+                </div>
+                
+                <button class="btn btn-primary" id="btnSyncSentinel">
+                    <i class="fa-solid fa-satellite"></i> Fetch Live Sentinel-2 Scene
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Split Layout -->
+        <div class="dashboard-body">
+            <!-- Left Control & Layers Sidebar -->
+            <aside class="sidebar" id="mainSidebar">
+                <!-- Tab Navigation -->
+                <div class="sidebar-tabs">
+                    <button class="tab-btn active" data-tab="tab-exploration">
+                        <i class="fa-solid fa-microscope"></i> Mn Exploration
+                    </button>
+                    <button class="tab-btn" data-tab="tab-production">
+                        <i class="fa-solid fa-truck-monster"></i> Mine Operations
+                    </button>
+                    <button class="tab-btn" data-tab="tab-decisions">
+                        <i class="fa-solid fa-bullseye"></i> AI Decisions
+                    </button>
+                </div>
+
+                <!-- Tab Content 1: Exploration -->
+                <div class="tab-content active" id="tab-exploration">
+                    <div class="card-section">
+                        <h3><i class="fa-solid fa-layer-group"></i> Sentinel-2 Spectral Layers</h3>
+                        <p class="help-text">Multi-spectral VNIR/SWIR Band Ratios for Manganese Alteration Detection</p>
+                        
+                        <div class="layer-item">
+                            <label class="switch-label">
+                                <input type="checkbox" id="layerMnIndex" checked>
+                                <span class="slider round"></span>
+                                <span class="layer-title"><i class="fa-solid fa-fire text-amber"></i> Mn Oxide Alteration Index (SWIR B11/B12)</span>
+                            </label>
+                            <span class="confidence-tag">High Prospectivity</span>
+                        </div>
+
+                        <div class="layer-item">
+                            <label class="switch-label">
+                                <input type="checkbox" id="layerNdwi" checked>
+                                <span class="slider round"></span>
+                                <span class="layer-title"><i class="fa-solid fa-droplet text-blue"></i> Surface Soil Moisture (NDWI B3/B8)</span>
+                            </label>
+                        </div>
+
+                        <div class="layer-item">
+                            <label class="switch-label">
+                                <input type="checkbox" id="layerNdvi">
+                                <span class="slider round"></span>
+                                <span class="layer-title"><i class="fa-solid fa-leaf text-green"></i> Vegetation Stress (NDVI B8/B4)</span>
+                            </label>
+                        </div>
+
+                        <div class="layer-item">
+                            <label class="switch-label">
+                                <input type="checkbox" id="layerKriging" checked>
+                                <span class="slider round"></span>
+                                <span class="layer-title"><i class="fa-solid fa-chart-area text-purple"></i> PyKrige Interpolated Mn Heatmap</span>
+                            </label>
+                        </div>
+                        
+                        <div class="layer-item">
+                            <label class="switch-label">
+                                <input type="checkbox" id="layerDrillTargets" checked>
+                                <span class="slider round"></span>
+                                <span class="layer-title"><i class="fa-solid fa-location-crosshairs text-red"></i> Optimized AI Drill Targets</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Spectral Sensitivity Controls -->
+                    <div class="card-section">
+                        <h3><i class="fa-solid fa-sliders"></i> Spectral Index Parameters</h3>
+                        <div class="slider-control">
+                            <div class="slider-header">
+                                <span>Mn Cutoff Threshold Ratio</span>
+                                <span id="cutoffValue">1.45</span>
+                            </div>
+                            <input type="range" id="sliderCutoff" min="1.00" max="2.20" step="0.05" value="1.45">
+                        </div>
+                        
+                        <div class="slider-control">
+                            <div class="slider-header">
+                                <span>PyKrige Smoothing Variance ($\sigma^2$)</span>
+                                <span id="krigingValue">0.82</span>
+                            </div>
+                            <input type="range" id="sliderKriging" min="0.1" max="2.0" step="0.1" value="0.82">
+                        </div>
+                    </div>
+
+                    <!-- Target Statistics Card -->
+                    <div class="card-section stats-card">
+                        <h3><i class="fa-solid fa-chart-pie"></i> Prospectivity Summary</h3>
+                        <div class="stats-grid">
+                            <div class="stat-box">
+                                <span class="stat-num text-amber" id="statHighProbArea">14.8 km²</span>
+                                <span class="stat-desc">High Mn Target Area</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-num text-purple" id="statAvgGrade">38.4%</span>
+                                <span class="stat-desc">Est. Mn Grade</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-num text-cyan" id="statTargetsFound">7</span>
+                                <span class="stat-desc">Priority Drill Sites</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-num text-green" id="statConfidence">91.2%</span>
+                                <span class="stat-desc">Spatial Confidence</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content 2: Production Management -->
+                <div class="tab-content" id="tab-production">
+                    <div class="card-section">
+                        <h3><i class="fa-solid fa-cloud-sun-rain"></i> Live Mine Site Weather Telemetry</h3>
+                        <div class="weather-widget">
+                            <div class="weather-main">
+                                <i class="fa-solid fa-cloud-showers-heavy text-cyan weather-icon"></i>
+                                <div>
+                                    <div class="temp">27.5°C</div>
+                                    <div class="condition">Heavy Precipitation Risk (Monsoon Sector)</div>
+                                </div>
+                            </div>
+                            <div class="weather-details">
+                                <div><span>Rainfall 24h:</span> <strong>64.2 mm</strong></div>
+                                <div><span>Soil Saturation:</span> <strong class="text-danger">88% (High)</strong></div>
+                                <div><span>Haul Road Friction:</span> <strong class="text-warning">0.34 (Slick)</strong></div>
+                                <div><span>Pit Water Inflow:</span> <strong>1,420 m³/hr</strong></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-section">
+                        <h3><i class="fa-solid fa-triangle-exclamation"></i> AI Operational Risk Prediction</h3>
+                        
+                        <div class="risk-card high-risk">
+                            <div class="risk-header">
+                                <span><i class="fa-solid fa-water"></i> Pit Flooding Risk (Bench #4)</span>
+                                <span class="risk-badge badge-danger">CRITICAL (86%)</span>
+                            </div>
+                            <p class="risk-body">High soil saturation (NDWI 0.74) + predicted 45mm rain over next 3h. Recommend sump pump activation.</p>
+                        </div>
+
+                        <div class="risk-card medium-risk">
+                            <div class="risk-header">
+                                <span><i class="fa-solid fa-road-barrier"></i> Haul Road #2 Slope Instability</span>
+                                <span class="risk-badge badge-warning">HIGH (68%)</span>
+                            </div>
+                            <p class="risk-body">Slick road condition on incline 12°. Dynamic speed restriction forced for heavy dumpers.</p>
+                        </div>
+
+                        <div class="risk-card low-risk">
+                            <div class="risk-header">
+                                <span><i class="fa-solid fa-gear"></i> Excavator EX-04 Hydraulics</span>
+                                <span class="risk-badge badge-info">ELEVATED (42%)</span>
+                            </div>
+                            <p class="risk-body">Thermal spike detected in hydraulic pump. Schedule preventive maintenance in 4h shift change.</p>
+                        </div>
+                    </div>
+
+                    <div class="card-section">
+                        <h3><i class="fa-solid fa-truck-moving"></i> Fleet Telematics Tracking</h3>
+                        <div class="fleet-list" id="fleetList">
+                            <!-- Fleet items injected via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content 3: Actionable Decisions -->
+                <div class="tab-content" id="tab-decisions">
+                    <div class="card-section">
+                        <h3><i class="fa-solid fa-compass-drafting"></i> Optimal Drill Core Coordinates</h3>
+                        <p class="help-text">AI target priority list to prevent blind drilling cost</p>
+                        <div class="drill-targets-list" id="drillTargetsList">
+                            <!-- Injected JS list -->
+                        </div>
+                        <button class="btn btn-secondary btn-full" id="btnExportDrillTargets">
+                            <i class="fa-solid fa-file-csv"></i> Export Drilling Coordinates (CSV/GeoJSON)
+                        </button>
+                    </div>
+
+                    <div class="card-section">
+                        <h3><i class="fa-solid fa-route"></i> Automated Fleet Re-Routing Dispatch</h3>
+                        <p class="help-text">Real-time schedule re-routing for dumpers to bypass haul road bottlenecks</p>
+                        <div class="reroute-feed" id="rerouteFeed">
+                            <!-- Reroute cards injected JS -->
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Center Interactive Map Container -->
+            <main class="map-view-container">
+                <div id="leafletMap" class="map-canvas"></div>
+
+                <!-- Map Floating Control Overlay -->
+                <div class="map-overlay-controls">
+                    <div class="map-mode-selector">
+                        <button class="map-mode-btn active" id="btnSatelliteBasemap">
+                            <i class="fa-solid fa-earth-asia"></i> Sentinel-2 Imagery
+                        </button>
+                        <button class="map-mode-btn" id="btnTopoBasemap">
+                            <i class="fa-solid fa-mountain"></i> Topographic
+                        </button>
+                        <button class="map-mode-btn" id="btnOpenStreetMap">
+                            <i class="fa-solid fa-map"></i> OpenStreetMap
+                        </button>
+                    </div>
+
+                    <div class="legend-box">
+                        <div class="legend-title">Manganese Ore Prospectivity</div>
+                        <div class="legend-gradient"></div>
+                        <div class="legend-labels">
+                            <span>Low (Host Rock)</span>
+                            <span>Medium</span>
+                            <span>High Target (Mn Oxide)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Spectral Curve Graph Drawer -->
+                <div class="spectral-drawer" id="spectralDrawer">
+                    <div class="drawer-header">
+                        <div class="drawer-title">
+                            <i class="fa-solid fa-chart-line text-cyan"></i>
+                            <span>Sentinel-2 VNIR/SWIR Multi-Spectral Signature Analyzer</span>
+                            <span class="pixel-info" id="pixelCoordInfo">Selected Location: Lat 21.7824, Lon 80.2185 (Balaghat Mn Sector)</span>
+                        </div>
+                        <button class="btn-icon" id="btnCloseDrawer"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="drawer-content">
+                        <div class="chart-container">
+                            <canvas id="spectralChart"></canvas>
+                        </div>
+                        <div class="spectral-diagnosis">
+                            <h4>Mineral Identification AI Diagnostic:</h4>
+                            <div class="diagnosis-card">
+                                <div class="diag-item">
+                                    <span class="diag-label">Identified Mineral:</span>
+                                    <strong class="text-amber" id="diagMineral">Psilomelane / Pyrolusite (Mn Oxide)</strong>
+                                </div>
+                                <div class="diag-item">
+                                    <span class="diag-label">SWIR B11/B12 Ratio:</span>
+                                    <strong id="diagSwirRatio">1.78 (Strong Absorption)</strong>
+                                </div>
+                                <div class="diag-item">
+                                    <span class="diag-label">VNIR B8/B11 Ratio:</span>
+                                    <strong id="diagVnirRatio">1.42</strong>
+                                </div>
+                                <div class="diag-item">
+                                    <span class="diag-label">Drilling Recommendation:</span>
+                                    <strong class="text-green" id="diagRec">HIGH PRIORITY CORE DRILL TARGET (Depth ~25-40m)</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- JavaScript Files -->
+    <script src="js/sentinel_service.js"></script>
+    <script src="js/exploration_engine.js"></script>
+    <script src="js/production_engine.js"></script>
+    <script src="js/map_engine.js"></script>
+    <script src="js/spectral_chart.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

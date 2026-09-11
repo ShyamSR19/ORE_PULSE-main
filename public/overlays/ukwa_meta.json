@@ -1,0 +1,15 @@
+{
+  "layer_name": "Ukwa Reserve Estimate",
+  "bounds": [
+    [
+      21.95,
+      80.45
+    ],
+    [
+      21.98,
+      80.47999999999999
+    ]
+  ],
+  "min_grade": 36.0,
+  "max_grade": 43.06
+}
